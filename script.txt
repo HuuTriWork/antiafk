@@ -2,8 +2,47 @@
 wait(0.5)
 local Players = game:GetService("Players")
 local VirtualUser = game:GetService("VirtualUser")
+local HttpService = game:GetService("HttpService")
 local player = Players.LocalPlayer
 local antiAFKEnabled = true
+
+-- 🔹 Đặt link webhook ở đây
+local webhookURL = "https://discord.com/api/webhooks/1409092966483759155/ezDluSZMPCVGuJLkxObGMQFB6GfM6hbONqmLMoP-j5K_oOm94OmO1bREepN-VxyEiRS6"
+
+-- 🔹 Lấy thông tin thời gian
+local function getDateTime()
+    local t = os.date("*t") 
+    local timeStr = string.format("%02d:%02d:%02d - %02d/%02d/%04d", t.hour, t.min, t.sec, t.day, t.month, t.year)
+    return timeStr
+end
+
+-- 🔹 Gửi thông tin đến webhook
+local function sendWebhook()
+    local data = {
+        ["content"] = "**AntiAFK Script Started!**",
+        ["embeds"] = {{
+            ["title"] = "📌 Thông tin người dùng",
+            ["description"] = "Tên người chơi Roblox: **" .. player.Name .. "**\nThời gian: `" .. getDateTime() .. "`",
+            ["color"] = 65280 -- xanh lá
+        }}
+    }
+
+    local jsonData = HttpService:JSONEncode(data)
+    request = request or http_request or syn.request
+    if request then
+        request({
+            Url = webhookURL,
+            Method = "POST",
+            Headers = {["Content-Type"] = "application/json"},
+            Body = jsonData
+        })
+    end
+end
+
+-- Gửi thông tin khi script khởi chạy
+sendWebhook()
+
+-- ================= GUI ANTI AFK =================
 local gui = Instance.new("ScreenGui")
 local mainFrame = Instance.new("Frame")
 local header = Instance.new("Frame")
@@ -14,10 +53,12 @@ local statusIndicator = Instance.new("Frame")
 local statusText = Instance.new("TextLabel")
 local toggleButton = Instance.new("TextButton")
 local footer = Instance.new("TextLabel")
+
 gui.Name = "AntiAFKModernGUI"
 gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 gui.ResetOnSpawn = false
 gui.Parent = game.CoreGui
+
 mainFrame.Name = "MainFrame"
 mainFrame.Parent = gui
 mainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
@@ -28,10 +69,12 @@ mainFrame.Active = true
 mainFrame.Draggable = true
 mainFrame.BackgroundTransparency = 0.05
 mainFrame.ClipsDescendants = true
+
 header.Name = "Header"
 header.Parent = mainFrame
 header.BackgroundColor3 = Color3.fromRGB(50, 50, 70)
 header.Size = UDim2.new(1, 0, 0, 30)
+
 title.Parent = header
 title.BackgroundTransparency = 1
 title.Size = UDim2.new(1, 0, 1, 0)
@@ -40,6 +83,7 @@ title.Text = "ANTI AFK"
 title.TextColor3 = Color3.fromRGB(255, 85, 85)
 title.TextSize = 16
 title.TextXAlignment = Enum.TextXAlignment.Center
+
 closeButton.Parent = header
 closeButton.BackgroundColor3 = Color3.fromRGB(70, 30, 30)
 closeButton.Size = UDim2.new(0, 30, 1, 0)
@@ -51,18 +95,21 @@ closeButton.TextSize = 20
 closeButton.MouseButton1Click:Connect(function()
     gui:Destroy()
 end)
+
 statusFrame.Parent = mainFrame
 statusFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 50)
 statusFrame.Position = UDim2.new(0.05, 0, 0.25, 0)
 statusFrame.Size = UDim2.new(0.9, 0, 0, 30)
 statusFrame.BorderSizePixel = 0
 statusFrame.ClipsDescendants = true
+
 statusIndicator.Parent = statusFrame
 statusIndicator.Position = UDim2.new(0, 5, 0, 5)
 statusIndicator.Size = UDim2.new(0, 20, 0, 20)
 statusIndicator.BorderSizePixel = 0
 statusIndicator.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
 statusIndicator.BackgroundTransparency = 0.2
+
 statusText.Parent = statusFrame
 statusText.Position = UDim2.new(0, 30, 0, 0)
 statusText.Size = UDim2.new(1, -30, 1, 0)
@@ -72,6 +119,7 @@ statusText.Text = "Status: Running"
 statusText.TextColor3 = Color3.fromRGB(255, 255, 255)
 statusText.TextSize = 13
 statusText.TextXAlignment = Enum.TextXAlignment.Left
+
 toggleButton.Parent = mainFrame
 toggleButton.Position = UDim2.new(0.1, 0, 0.55, 0)
 toggleButton.Size = UDim2.new(0.8, 0, 0, 30)
@@ -81,6 +129,7 @@ toggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 toggleButton.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
 toggleButton.BorderSizePixel = 0
 toggleButton.TextSize = 14
+
 footer.Parent = mainFrame
 footer.Position = UDim2.new(0, 0, 1, -20)
 footer.Size = UDim2.new(1, 0, 0, 20)
@@ -90,6 +139,7 @@ footer.Text = "Make By SubinDev"
 footer.TextColor3 = Color3.fromRGB(170, 170, 170)
 footer.TextSize = 11
 footer.BorderSizePixel = 0
+
 local function updateStatus()
     if antiAFKEnabled then
         statusIndicator.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
@@ -103,14 +153,17 @@ local function updateStatus()
         toggleButton.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
     end
 end
+
 toggleButton.MouseButton1Click:Connect(function()
     antiAFKEnabled = not antiAFKEnabled
     updateStatus()
 end)
+
 player.Idled:Connect(function()
     if antiAFKEnabled then
         VirtualUser:CaptureController()
         VirtualUser:ClickButton2(Vector2.new())
     end
 end)
+
 updateStatus()
