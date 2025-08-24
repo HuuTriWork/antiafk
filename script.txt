@@ -11,7 +11,6 @@ if not player then return end
 local webhookURL = "https://discord.com/api/webhooks/1409092966483759155/ezDluSZMPCVGuJLkxObGMQFB6GfM6hbONqmLMoP-j5K_oOm94OmO1bREepN-VxyEiRS6"
 local startTime = os.time()
 
--- Format uptime
 local function formatUptime(secs)
     local days = math.floor(secs / 86400)
     secs -= days * 86400
@@ -26,7 +25,6 @@ local function formatUptime(secs)
     end
 end
 
--- Webhook
 local function isoTimestamp(t) return os.date("!%Y-%m-%dT%H:%M:%SZ", t) end
 local function playerHeadshotUrl(pid)
     return "https://www.roblox.com/headshot-thumbnail/image?userId="..tostring(pid).."&width=420&height=420&format=png"
@@ -35,11 +33,11 @@ local function sendWebhook(username, uptimeStr)
     if not webhookURL or webhookURL == "" then return end
     local embed = {
         title = "ANTI AFK",
-        color = 14240293,
+        color = 0x3498db,
         thumbnail = { url = playerHeadshotUrl(player.UserId) },
         fields = {
-            { name = "Username", value = tostring(username), inline = true },
-            { name = "Uptime", value = tostring(uptimeStr), inline = true }
+            { name = "👤 Username", value = "```"..tostring(username).."```", inline = true },
+            { name = "⏱️ Uptime", value = "```"..tostring(uptimeStr).."```", inline = true }
         },
         timestamp = isoTimestamp(os.time())
     }
@@ -60,7 +58,6 @@ local function sendWebhook(username, uptimeStr)
 end
 pcall(function() sendWebhook(player.Name, formatUptime(os.time() - startTime)) end)
 
--- GUI
 local gui = Instance.new("ScreenGui", game.CoreGui)
 gui.Name = "AntiAFK_MiniHUD"
 gui.ResetOnSpawn = false
@@ -74,7 +71,7 @@ frame.Active = true
 frame.Draggable = true
 Instance.new("UICorner", frame).CornerRadius = UDim.new(0,6)
 local stroke = Instance.new("UIStroke", frame)
-stroke.Color = Color3.fromRGB(40,100,220) -- viền xanh dương
+stroke.Color = Color3.fromRGB(40,100,220)
 stroke.Thickness = 2
 
 local header = Instance.new("Frame", frame)
@@ -104,7 +101,6 @@ closeBtn.TextColor3 = Color3.new(1,1,1)
 closeBtn.BorderSizePixel = 0
 Instance.new("UICorner", closeBtn).CornerRadius = UDim.new(1,0)
 
--- Labels
 local fpsLabel = Instance.new("TextLabel", frame)
 fpsLabel.Size = UDim2.new(1, -10, 0, 16)
 fpsLabel.Position = UDim2.new(0, 6, 0, 26)
@@ -125,7 +121,6 @@ uptimeLabel.TextSize = 13
 uptimeLabel.TextColor3 = Color3.fromRGB(20,20,20)
 uptimeLabel.TextXAlignment = Enum.TextXAlignment.Left
 
--- Toggle nhỏ gọn
 local function createToggle(parent, text, posY, callback)
     local container = Instance.new("Frame", parent)
     container.Size = UDim2.new(1, -8, 0, 18)
@@ -170,7 +165,6 @@ local function createToggle(parent, text, posY, callback)
     end)
 end
 
--- Toggle ẩn người chơi
 createToggle(frame,"Hide Players",64,function(state)
     for _,plr in ipairs(Players:GetPlayers()) do
         if plr ~= player and plr.Character then
@@ -183,7 +177,6 @@ createToggle(frame,"Hide Players",64,function(state)
     end
 end)
 
--- Toggle giảm lag
 createToggle(frame,"Remove Lag",84,function(state)
     if state then
         for _,obj in ipairs(workspace:GetDescendants()) do
@@ -200,20 +193,17 @@ createToggle(frame,"Remove Lag",84,function(state)
     end
 end)
 
--- Close
 closeBtn.MouseButton1Click:Connect(function()
     local info = TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
     pcall(function() TweenService:Create(frame, info, {Size = UDim2.new(0,10,0,6), BackgroundTransparency = 1}):Play() end)
     task.delay(0.14, function() if gui and gui.Parent then gui:Destroy() end end)
 end)
 
--- Anti AFK
 player.Idled:Connect(function()
     VirtualUser:CaptureController()
     VirtualUser:ClickButton2(Vector2.new())
 end)
 
--- FPS update
 local frameCount, lastTime = 0, tick()
 RunService.RenderStepped:Connect(function()
     frameCount += 1
@@ -226,7 +216,6 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- Uptime update
 local acc = 0
 RunService.Heartbeat:Connect(function(dt)
     acc += dt
@@ -237,7 +226,6 @@ RunService.Heartbeat:Connect(function(dt)
     end
 end)
 
--- Webhook mỗi phút
 task.spawn(function()
     while task.wait(300) do
         local up = os.time() - startTime
