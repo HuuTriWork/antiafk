@@ -36,8 +36,8 @@ local function sendWebhook(username, uptimeStr)
         color = 0x3498db,
         thumbnail = { url = playerHeadshotUrl(player.UserId) },
         fields = {
-            { name = "👤 Username", value = "```"..tostring(username).."```", inline = true },
-            { name = "⏱️ Uptime", value = "```"..tostring(uptimeStr).."```", inline = true }
+            { name = "👤 **Username:**", value = "```"..tostring(username).."```", inline = false },
+            { name = "⏱️ **Uptime:**", value = "```"..tostring(uptimeStr).."```", inline = false }
         },
         timestamp = isoTimestamp(os.time())
     }
