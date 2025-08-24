@@ -1,169 +1,208 @@
--- Make By SubinDev
-wait(0.5)
+wait(0.3)
 local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
 local VirtualUser = game:GetService("VirtualUser")
 local HttpService = game:GetService("HttpService")
+local TweenService = game:GetService("TweenService")
+
 local player = Players.LocalPlayer
-local antiAFKEnabled = true
+if not player then return end
 
--- 🔹 Đặt link webhook ở đây
 local webhookURL = "https://discord.com/api/webhooks/1409092966483759155/ezDluSZMPCVGuJLkxObGMQFB6GfM6hbONqmLMoP-j5K_oOm94OmO1bREepN-VxyEiRS6"
+local startTime = os.time()
 
--- 🔹 Lấy thông tin thời gian
-local function getDateTime()
-    local t = os.date("*t") 
-    local timeStr = string.format("%02d:%02d:%02d - %02d/%02d/%04d", t.hour, t.min, t.sec, t.day, t.month, t.year)
-    return timeStr
-end
-
--- 🔹 Gửi thông tin đến webhook
-local function sendWebhook()
-    local data = {
-        ["content"] = "**AntiAFK Script Started!**",
-        ["embeds"] = {{
-            ["title"] = "📌 Thông tin người dùng",
-            ["description"] = "Tên người chơi Roblox: **" .. player.Name .. "**\nThời gian: `" .. getDateTime() .. "`",
-            ["color"] = 65280 -- xanh lá
-        }}
-    }
-
-    local jsonData = HttpService:JSONEncode(data)
-    request = request or http_request or syn.request
-    if request then
-        request({
-            Url = webhookURL,
-            Method = "POST",
-            Headers = {["Content-Type"] = "application/json"},
-            Body = jsonData
-        })
+local function formatUptime(secs)
+    local days = math.floor(secs / 86400)
+    secs -= days * 86400
+    local hours = math.floor(secs / 3600)
+    secs -= hours * 3600
+    local mins = math.floor(secs / 60)
+    local seconds = math.floor(secs - mins * 60)
+    if days > 0 then
+        return string.format("%dd %02d:%02d:%02d", days, hours, mins, seconds)
+    else
+        return string.format("%02d:%02d:%02d", hours, mins, seconds)
     end
 end
 
--- Gửi thông tin khi script khởi chạy
-sendWebhook()
+local function isoTimestamp(t)
+    return os.date("!%Y-%m-%dT%H:%M:%SZ", t)
+end
 
--- ================= GUI ANTI AFK =================
+local function playerHeadshotUrl(pid)
+    return "https://www.roblox.com/headshot-thumbnail/image?userId="..tostring(pid).."&width=420&height=420&format=png"
+end
+
+local function sendWebhook(username, uptimeStr)
+    if not webhookURL or webhookURL == "" then return end
+    local embed = {
+        title = "ANTI AFK",
+        color = 14240293,
+        thumbnail = { url = playerHeadshotUrl(player.UserId) },
+        fields = {
+            { name = "Username", value = tostring(username), inline = true },
+            { name = "Uptime", value = tostring(uptimeStr), inline = true }
+        },
+        timestamp = isoTimestamp(os.time())
+    }
+    local payload = { embeds = { embed } }
+    local ok, body = pcall(function() return HttpService:JSONEncode(payload) end)
+    if not ok or not body then return end
+    local requestfn = (syn and syn.request) or (http and http.request) or request or http_request or (fluxus and fluxus.request)
+    if type(requestfn) == "function" then
+        pcall(function()
+            requestfn({
+                Url = webhookURL,
+                Method = "POST",
+                Headers = { ["Content-Type"] = "application/json" },
+                Body = body
+            })
+        end)
+    end
+end
+
+pcall(function() sendWebhook(player.Name, formatUptime(os.time() - startTime)) end)
+
 local gui = Instance.new("ScreenGui")
-local mainFrame = Instance.new("Frame")
-local header = Instance.new("Frame")
-local title = Instance.new("TextLabel")
-local closeButton = Instance.new("TextButton")
-local statusFrame = Instance.new("Frame")
-local statusIndicator = Instance.new("Frame")
-local statusText = Instance.new("TextLabel")
-local toggleButton = Instance.new("TextButton")
-local footer = Instance.new("TextLabel")
-
-gui.Name = "AntiAFKModernGUI"
-gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+gui.Name = "AntiAFK_MiniHUD"
 gui.ResetOnSpawn = false
 gui.Parent = game.CoreGui
 
-mainFrame.Name = "MainFrame"
-mainFrame.Parent = gui
-mainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
-mainFrame.BorderSizePixel = 0
-mainFrame.Position = UDim2.new(0.7, 0, 0.15, 0)
-mainFrame.Size = UDim2.new(0, 200, 0, 150)
-mainFrame.Active = true
-mainFrame.Draggable = true
-mainFrame.BackgroundTransparency = 0.05
-mainFrame.ClipsDescendants = true
+local frame = Instance.new("Frame", gui)
+frame.Size = UDim2.new(0, 105, 0, 64)
+frame.Position = UDim2.new(0.02, 0, 0.02, 0)
+frame.BackgroundColor3 = Color3.fromRGB(230,230,230)
+frame.BorderSizePixel = 0
+frame.Active = true
+frame.ClipsDescendants = true
+frame.Draggable = true
+Instance.new("UICorner", frame).CornerRadius = UDim.new(0,4)
+local stroke = Instance.new("UIStroke", frame)
+stroke.Color = Color3.fromRGB(160,120,220)
+stroke.Thickness = 2
 
-header.Name = "Header"
-header.Parent = mainFrame
-header.BackgroundColor3 = Color3.fromRGB(50, 50, 70)
-header.Size = UDim2.new(1, 0, 0, 30)
+local header = Instance.new("Frame", frame)
+header.Size = UDim2.new(1, 0, 0, 26)
+header.Position = UDim2.new(0,0,0,0)
+header.BackgroundColor3 = Color3.fromRGB(245,245,250)
+header.BorderSizePixel = 0
 
-title.Parent = header
+local title = Instance.new("TextLabel", header)
+title.Size = UDim2.new(1, -28, 1, 0)
+title.Position = UDim2.new(0, 6, 0, 0)
 title.BackgroundTransparency = 1
-title.Size = UDim2.new(1, 0, 1, 0)
 title.Font = Enum.Font.GothamBold
 title.Text = "ANTI AFK"
-title.TextColor3 = Color3.fromRGB(255, 85, 85)
+title.TextColor3 = Color3.fromRGB(200,30,30)
 title.TextSize = 16
-title.TextXAlignment = Enum.TextXAlignment.Center
+title.TextXAlignment = Enum.TextXAlignment.Left
 
-closeButton.Parent = header
-closeButton.BackgroundColor3 = Color3.fromRGB(70, 30, 30)
-closeButton.Size = UDim2.new(0, 30, 1, 0)
-closeButton.Position = UDim2.new(1, -30, 0, 0)
-closeButton.Font = Enum.Font.GothamBold
-closeButton.Text = "×"
-closeButton.TextColor3 = Color3.fromRGB(255, 100, 100)
-closeButton.TextSize = 20
-closeButton.MouseButton1Click:Connect(function()
-    gui:Destroy()
+local closeBtn = Instance.new("TextButton", header)
+closeBtn.Size = UDim2.new(0, 18, 0, 18)
+closeBtn.Position = UDim2.new(1, -20, 0.5, -9)
+closeBtn.BackgroundColor3 = Color3.fromRGB(180,150,150)
+closeBtn.BorderSizePixel = 0
+closeBtn.Font = Enum.Font.GothamBold
+closeBtn.Text = "x"
+closeBtn.TextSize = 12
+closeBtn.TextColor3 = Color3.fromRGB(255,255,255)
+closeBtn.AutoButtonColor = true
+Instance.new("UICorner", closeBtn).CornerRadius = UDim.new(1,0)
+
+local fpsLabelText = Instance.new("TextLabel", frame)
+fpsLabelText.Size = UDim2.new(0, 0, 0, 20)
+fpsLabelText.Position = UDim2.new(0, 6, 0, 30)
+fpsLabelText.BackgroundTransparency = 1
+fpsLabelText.Font = Enum.Font.GothamBold
+fpsLabelText.Text = "FPS:"
+fpsLabelText.TextSize = 14
+fpsLabelText.TextColor3 = Color3.fromRGB(10,10,10)
+fpsLabelText.TextXAlignment = Enum.TextXAlignment.Left
+
+local fpsValue = Instance.new("TextLabel", frame)
+fpsValue.Size = UDim2.new(0, 50, 0, 20)
+fpsValue.BackgroundTransparency = 1
+fpsValue.Font = Enum.Font.GothamBold
+fpsValue.Text = "--"
+fpsValue.TextSize = 14
+fpsValue.TextColor3 = Color3.fromRGB(80,220,110) 
+fpsValue.TextXAlignment = Enum.TextXAlignment.Left
+fpsValue.Position = UDim2.new(0, fpsLabelText.Position.X.Offset + fpsLabelText.TextBounds.X + 4, 0, 30)
+
+fpsLabelText:GetPropertyChangedSignal("TextBounds"):Connect(function()
+    fpsValue.Position = UDim2.new(0, fpsLabelText.Position.X.Offset + fpsLabelText.TextBounds.X + 4, 0, 30)
 end)
 
-statusFrame.Parent = mainFrame
-statusFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 50)
-statusFrame.Position = UDim2.new(0.05, 0, 0.25, 0)
-statusFrame.Size = UDim2.new(0.9, 0, 0, 30)
-statusFrame.BorderSizePixel = 0
-statusFrame.ClipsDescendants = true
+local uptimeLabel = Instance.new("TextLabel", frame)
+uptimeLabel.Size = UDim2.new(1, -8, 0, 16)
+uptimeLabel.Position = UDim2.new(0, 6, 0, 50)
+uptimeLabel.BackgroundTransparency = 1
+uptimeLabel.Font = Enum.Font.GothamBold
+uptimeLabel.Text = "Uptime: 00:00:00"
+uptimeLabel.TextSize = 13
+uptimeLabel.TextColor3 = Color3.fromRGB(30,30,30)
+uptimeLabel.TextXAlignment = Enum.TextXAlignment.Left
 
-statusIndicator.Parent = statusFrame
-statusIndicator.Position = UDim2.new(0, 5, 0, 5)
-statusIndicator.Size = UDim2.new(0, 20, 0, 20)
-statusIndicator.BorderSizePixel = 0
-statusIndicator.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
-statusIndicator.BackgroundTransparency = 0.2
-
-statusText.Parent = statusFrame
-statusText.Position = UDim2.new(0, 30, 0, 0)
-statusText.Size = UDim2.new(1, -30, 1, 0)
-statusText.BackgroundTransparency = 1
-statusText.Font = Enum.Font.Gotham
-statusText.Text = "Status: Running"
-statusText.TextColor3 = Color3.fromRGB(255, 255, 255)
-statusText.TextSize = 13
-statusText.TextXAlignment = Enum.TextXAlignment.Left
-
-toggleButton.Parent = mainFrame
-toggleButton.Position = UDim2.new(0.1, 0, 0.55, 0)
-toggleButton.Size = UDim2.new(0.8, 0, 0, 30)
-toggleButton.Font = Enum.Font.GothamBold
-toggleButton.Text = "STOP"
-toggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-toggleButton.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
-toggleButton.BorderSizePixel = 0
-toggleButton.TextSize = 14
-
-footer.Parent = mainFrame
-footer.Position = UDim2.new(0, 0, 1, -20)
-footer.Size = UDim2.new(1, 0, 0, 20)
-footer.BackgroundColor3 = Color3.fromRGB(25, 25, 40)
-footer.Font = Enum.Font.Gotham
-footer.Text = "Make By SubinDev"
-footer.TextColor3 = Color3.fromRGB(170, 170, 170)
-footer.TextSize = 11
-footer.BorderSizePixel = 0
-
-local function updateStatus()
-    if antiAFKEnabled then
-        statusIndicator.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
-        statusText.Text = "Status: Running"
-        toggleButton.Text = "STOP"
-        toggleButton.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
-    else
-        statusIndicator.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
-        statusText.Text = "Status: Stopped"
-        toggleButton.Text = "START"
-        toggleButton.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
-    end
-end
-
-toggleButton.MouseButton1Click:Connect(function()
-    antiAFKEnabled = not antiAFKEnabled
-    updateStatus()
+closeBtn.MouseButton1Click:Connect(function()
+    closeBtn.Active = false
+    local info = TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
+    pcall(function()
+        TweenService:Create(frame, info, {Size = UDim2.new(0,10,0,6), BackgroundTransparency = 1}):Play()
+        TweenService:Create(title, info, {TextTransparency = 1}):Play()
+        TweenService:Create(fpsLabelText, info, {TextTransparency = 1}):Play()
+        TweenService:Create(fpsValue, info, {TextTransparency = 1}):Play()
+        TweenService:Create(uptimeLabel, info, {TextTransparency = 1}):Play()
+        TweenService:Create(closeBtn, info, {BackgroundTransparency = 1, TextTransparency = 1}):Play()
+    end)
+    delay(0.14, function()
+        if gui and gui.Parent then gui:Destroy() end
+    end)
 end)
 
 player.Idled:Connect(function()
-    if antiAFKEnabled then
-        VirtualUser:CaptureController()
-        VirtualUser:ClickButton2(Vector2.new())
+    VirtualUser:CaptureController()
+    VirtualUser:ClickButton2(Vector2.new())
+end)
+
+local frameCount, lastTime = 0, tick()
+RunService.RenderStepped:Connect(function()
+    frameCount += 1
+    local now = tick()
+    if now - lastTime >= 1 then
+        local fps = frameCount
+        frameCount = 0
+        lastTime = now
+        fpsValue.Text = tostring(fps)
+        if fps >= 30 then
+            fpsValue.TextColor3 = Color3.fromRGB(80,220,110)
+        else
+            fpsValue.TextColor3 = Color3.fromRGB(220,50,50)
+        end
     end
 end)
 
-updateStatus()
+local acc = 0
+RunService.Heartbeat:Connect(function(dt)
+    acc += dt
+    if acc >= 1 then
+        local up = os.time() - startTime
+        uptimeLabel.Text = "Uptime: "..formatUptime(up)
+        acc -= 1
+    end
+end)
+
+spawn(function()
+    while true do
+        wait(60)
+        local up = os.time() - startTime
+        pcall(function()
+            sendWebhook(player.Name, formatUptime(up))
+        end)
+    end
+end)
+
+player.AncestryChanged:Connect(function(_, parent)
+    if not parent and gui and gui.Parent then
+        gui:Destroy()
+    end
+end)
