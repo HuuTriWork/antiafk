@@ -1,69 +1,55 @@
 wait(0.3)
+
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local VirtualUser = game:GetService("VirtualUser")
 local HttpService = game:GetService("HttpService")
 local TweenService = game:GetService("TweenService")
+local MarketplaceService = game:GetService("MarketplaceService")
 
 local player = Players.LocalPlayer
 if not player then return end
 
 local webhookURL = "https://discord.com/api/webhooks/1409092966483759155/ezDluSZMPCVGuJLkxObGMQFB6GfM6hbONqmLMoP-j5K_oOm94OmO1bREepN-VxyEiRS6"
-local startTime = os.time()
+local username = player.Name
+local location = MarketplaceService:GetProductInfo(game.PlaceId).Name
 
-local function formatUptime(secs)
-    local days = math.floor(secs / 86400)
-    secs -= days * 86400
-    local hours = math.floor(secs / 3600)
-    secs -= hours * 3600
-    local mins = math.floor(secs / 60)
-    local seconds = math.floor(secs - mins * 60)
-    if days > 0 then
-        return string.format("%dd %02d:%02d:%02d", days, hours, mins, seconds)
-    else
-        return string.format("%02d:%02d:%02d", hours, mins, seconds)
-    end
-end
-
-local function isoTimestamp(t) return os.date("!%Y-%m-%dT%H:%M:%SZ", t) end
-local function playerHeadshotUrl(pid)
-    return "https://www.roblox.com/headshot-thumbnail/image?userId="..tostring(pid).."&width=420&height=420&format=png"
-end
-local function sendWebhook(username, uptimeStr)
-    if not webhookURL or webhookURL == "" then return end
-    local embed = {
-        title = "ANTI AFK",
-        color = 0x3498db,
-        thumbnail = { url = playerHeadshotUrl(player.UserId) },
+local data = {
+    embeds = {{
+        color = 3447003,
         fields = {
-            { name = "👤 **Username:**", value = "```"..tostring(username).."```", inline = false },
-            { name = "⏱️ **Uptime:**", value = "```"..tostring(uptimeStr).."```", inline = false }
+            {name = "Username:", value = "```"..username.."```", inline = true},
+            {name = "Game:", value = "```"..location.."```", inline = true}
         },
-        timestamp = isoTimestamp(os.time())
-    }
-    local payload = { embeds = { embed } }
-    local ok, body = pcall(function() return HttpService:JSONEncode(payload) end)
-    if not ok then return end
-    local requestfn = (syn and syn.request) or (http and http.request) or request or http_request
-    if type(requestfn) == "function" then
-        pcall(function()
-            requestfn({
-                Url = webhookURL,
-                Method = "POST",
-                Headers = { ["Content-Type"] = "application/json" },
-                Body = body
-            })
-        end)
-    end
+        image = {url = "https://images.steamusercontent.com/ugc/449611652050198394/003B0F458420C44A75D10CBDC94A9C0B964C06F7/?imw=5000&imh=5000&ima=fit&impolicy=Letterbox&imcolor=%23000000&letterbox=false"},
+        timestamp = DateTime.now():ToIsoDate()
+    }}
+}
+local jsonData = HttpService:JSONEncode(data)
+local request = request or http_request or (syn and syn.request)
+if request then
+    request({Url = webhookURL, Method = "POST", Headers = {["Content-Type"] = "application/json"}, Body = jsonData})
 end
-pcall(function() sendWebhook(player.Name, formatUptime(os.time() - startTime)) end)
+
+player.Idled:Connect(function()
+    VirtualUser:CaptureController()
+    VirtualUser:ClickButton2(Vector2.new())
+end)
+
+local startTime = os.time()
+local function formatUptime(secs)
+    local h = math.floor(secs/3600)
+    local m = math.floor((secs%3600)/60)
+    local s = secs%60
+    return string.format("%02d:%02d:%02d", h, m, s)
+end
 
 local gui = Instance.new("ScreenGui", game.CoreGui)
-gui.Name = "AntiAFK_MiniHUD"
+gui.Name = "MenuMod_HUD"
 gui.ResetOnSpawn = false
 
 local frame = Instance.new("Frame", gui)
-frame.Size = UDim2.new(0, 115, 0, 110) 
+frame.Size = UDim2.new(0, 125, 0, 170)
 frame.Position = UDim2.new(0.02, 0, 0.05, 0)
 frame.BackgroundColor3 = Color3.fromRGB(240,240,250)
 frame.BorderSizePixel = 0
@@ -81,14 +67,25 @@ header.BorderSizePixel = 0
 Instance.new("UICorner", header).CornerRadius = UDim.new(0,6)
 
 local title = Instance.new("TextLabel", header)
-title.Size = UDim2.new(1, -24, 1, 0)
+title.Size = UDim2.new(1, -44, 1, 0)
 title.Position = UDim2.new(0, 6, 0, 0)
 title.BackgroundTransparency = 1
 title.Font = Enum.Font.GothamBold
 title.Text = "ANTI AFK"
 title.TextColor3 = Color3.fromRGB(25,80,200)
 title.TextSize = 14
-title.TextXAlignment = Enum.TextXAlignment.Left
+title.TextXAlignment = Enum.TextXAlignment.Center
+
+local minimizeBtn = Instance.new("TextButton", header)
+minimizeBtn.Size = UDim2.new(0, 16, 0, 16)
+minimizeBtn.Position = UDim2.new(1, -40, 0.5, -8)
+minimizeBtn.BackgroundColor3 = Color3.fromRGB(120,180,240)
+minimizeBtn.Font = Enum.Font.GothamBold
+minimizeBtn.Text = "-"
+minimizeBtn.TextSize = 11
+minimizeBtn.TextColor3 = Color3.new(1,1,1)
+minimizeBtn.BorderSizePixel = 0
+Instance.new("UICorner", minimizeBtn).CornerRadius = UDim.new(1,0)
 
 local closeBtn = Instance.new("TextButton", header)
 closeBtn.Size = UDim2.new(0, 16, 0, 16)
@@ -102,30 +99,32 @@ closeBtn.BorderSizePixel = 0
 Instance.new("UICorner", closeBtn).CornerRadius = UDim.new(1,0)
 
 local fpsLabel = Instance.new("TextLabel", frame)
-fpsLabel.Size = UDim2.new(1, -10, 0, 16)
+fpsLabel.Size = UDim2.new(1, -10, 0, 18)
 fpsLabel.Position = UDim2.new(0, 6, 0, 26)
 fpsLabel.BackgroundTransparency = 1
-fpsLabel.Font = Enum.Font.Gotham
+fpsLabel.Font = Enum.Font.GothamBold
 fpsLabel.Text = "FPS: --"
 fpsLabel.TextSize = 13
-fpsLabel.TextColor3 = Color3.fromRGB(20,20,20)
+fpsLabel.TextColor3 = Color3.fromRGB(0,0,0)
 fpsLabel.TextXAlignment = Enum.TextXAlignment.Left
 
 local uptimeLabel = Instance.new("TextLabel", frame)
-uptimeLabel.Size = UDim2.new(1, -10, 0, 16)
+uptimeLabel.Size = UDim2.new(1, -10, 0, 18)
 uptimeLabel.Position = UDim2.new(0, 6, 0, 42)
 uptimeLabel.BackgroundTransparency = 1
-uptimeLabel.Font = Enum.Font.Gotham
+uptimeLabel.Font = Enum.Font.GothamBold
 uptimeLabel.Text = "Uptime: 00:00:00"
 uptimeLabel.TextSize = 13
-uptimeLabel.TextColor3 = Color3.fromRGB(20,20,20)
+uptimeLabel.TextColor3 = Color3.fromRGB(0,0,0)
 uptimeLabel.TextXAlignment = Enum.TextXAlignment.Left
 
+local toggleFrames = {}
 local function createToggle(parent, text, posY, callback)
     local container = Instance.new("Frame", parent)
     container.Size = UDim2.new(1, -8, 0, 18)
     container.Position = UDim2.new(0, 4, 0, posY)
     container.BackgroundTransparency = 1
+    table.insert(toggleFrames, container)
 
     local label = Instance.new("TextLabel", container)
     label.Size = UDim2.new(0.65, 0, 1, 0)
@@ -165,7 +164,7 @@ local function createToggle(parent, text, posY, callback)
     end)
 end
 
-createToggle(frame,"Hide Players",64,function(state)
+createToggle(frame,"Hide player",64,function(state)
     for _,plr in ipairs(Players:GetPlayers()) do
         if plr ~= player and plr.Character then
             for _,part in ipairs(plr.Character:GetDescendants()) do
@@ -177,7 +176,34 @@ createToggle(frame,"Hide Players",64,function(state)
     end
 end)
 
-createToggle(frame,"Remove Lag",84,function(state)
+createToggle(frame,"Invisible",84,function(state)
+    if player.Character then
+        for _,part in ipairs(player.Character:GetDescendants()) do
+            if part:IsA("BasePart") or part:IsA("Decal") then
+                part.Transparency = state and 1 or 0
+                if part:IsA("BasePart") then
+                    part.CanCollide = not state
+                end
+            end
+        end
+    end
+end)
+
+createToggle(frame,"Speed x2",104,function(state)
+    if player.Character and player.Character:FindFirstChildOfClass("Humanoid") then
+        player.Character:FindFirstChildOfClass("Humanoid").WalkSpeed = state and 32 or 16
+    end
+end)
+
+createToggle(frame,"Jump x2",124,function(state)
+    if player.Character and player.Character:FindFirstChildOfClass("Humanoid") then
+        local hum = player.Character:FindFirstChildOfClass("Humanoid")
+        hum.UseJumpPower = true
+        hum.JumpPower = state and 100 or 50
+    end
+end)
+
+createToggle(frame,"Remove Lag",144,function(state)
     if state then
         for _,obj in ipairs(workspace:GetDescendants()) do
             if obj:IsA("ParticleEmitter") or obj:IsA("Trail") then
@@ -195,13 +221,23 @@ end)
 
 closeBtn.MouseButton1Click:Connect(function()
     local info = TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
-    pcall(function() TweenService:Create(frame, info, {Size = UDim2.new(0,10,0,6), BackgroundTransparency = 1}):Play() end)
+    TweenService:Create(frame, info, {Size = UDim2.new(0,10,0,6), BackgroundTransparency = 1}):Play()
     task.delay(0.14, function() if gui and gui.Parent then gui:Destroy() end end)
 end)
 
-player.Idled:Connect(function()
-    VirtualUser:CaptureController()
-    VirtualUser:ClickButton2(Vector2.new())
+local minimized = false
+minimizeBtn.MouseButton1Click:Connect(function()
+    minimized = not minimized
+    for _,f in ipairs(toggleFrames) do
+        f.Visible = not minimized
+    end
+    if minimized then
+        frame.Size = UDim2.new(0,115,0,70)
+        minimizeBtn.Text = "+"
+    else
+        frame.Size = UDim2.new(0,115,0,185)
+        minimizeBtn.Text = "-"
+    end
 end)
 
 local frameCount, lastTime = 0, tick()
@@ -212,7 +248,7 @@ RunService.RenderStepped:Connect(function()
         local fps = frameCount
         frameCount, lastTime = 0, now
         fpsLabel.Text = "FPS: "..fps
-        fpsLabel.TextColor3 = fps >= 30 and Color3.fromRGB(60,200,100) or Color3.fromRGB(220,60,60)
+        fpsLabel.TextColor3 = fps >= 30 and Color3.fromRGB(0,180,0) or Color3.fromRGB(200,0,0)
     end
 end)
 
@@ -220,15 +256,7 @@ local acc = 0
 RunService.Heartbeat:Connect(function(dt)
     acc += dt
     if acc >= 1 then
-        local up = os.time() - startTime
-        uptimeLabel.Text = "Uptime: "..formatUptime(up)
+        uptimeLabel.Text = "Uptime: "..formatUptime(os.time() - startTime)
         acc -= 1
-    end
-end)
-
-task.spawn(function()
-    while task.wait(300) do
-        local up = os.time() - startTime
-        pcall(function() sendWebhook(player.Name, formatUptime(up)) end)
     end
 end)
